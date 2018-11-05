@@ -56,13 +56,14 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
     private boolean ignoreEvents;
     private int lastNestedScrollDy;
     private boolean nestedScrolled;
-    int parentHeight;
+    int parentWidth;
     WeakReference<V> viewRef;
     WeakReference<View> nestedScrollingChildRef;
     private BottomSheetBehavior.BottomSheetCallback callback;
     private VelocityTracker velocityTracker;
     int activePointerId;
-    private int initialY;
+    private int initialX;
+    //private int initialY;
     boolean touchingScrollingChild;
     private Map<View, Integer> importantForAccessibilityMap;
     private final ViewDragHelper.Callback dragCallback = new ViewDragHelper.Callback() {
@@ -72,9 +73,9 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
             } else if (DrawerSheetBehavior.this.touchingScrollingChild) {
                 return false;
             } else {
-                if (DrawerSheetBehavior.this.state == 3 && DrawerSheetBehavior.this.activePointerId == pointerId) {
+                if (DrawerSheetBehavior.this.state == STATE_EXPANDED && DrawerSheetBehavior.this.activePointerId == pointerId) {
                     View scroll = (View) DrawerSheetBehavior.this.nestedScrollingChildRef.get();
-                    if (scroll != null && scroll.canScrollVertically(-1)) {
+                    if (scroll != null && scroll.canScrollHorizontally(-1)) {
                         return false;
                     }
                 }
@@ -84,7 +85,7 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
         }
 
         public void onViewPositionChanged(@NonNull View changedView, int left, int top, int dx, int dy) {
-            DrawerSheetBehavior.this.dispatchOnSlide(top);
+            DrawerSheetBehavior.this.dispatchOnSlide(left);
         }
 
         public void onViewDragStateChanged(int state) {
@@ -143,11 +144,11 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
                     }
                 }
             } else {
-                top = DrawerSheetBehavior.this.parentHeight;
+                top = DrawerSheetBehavior.this.parentWidth;
                 targetState = 5;
             }
 
-            if (DrawerSheetBehavior.this.viewDragHelper.settleCapturedViewAt(releasedChild.getLeft(), top)) {
+            if (DrawerSheetBehavior.this.viewDragHelper.settleCapturedViewAt(releasedChild.getLeft(), t op)) {
                 DrawerSheetBehavior.this.setStateInternal(2);
                 ViewCompat.postOnAnimation(releasedChild, DrawerSheetBehavior.this.new SettleRunnable(releasedChild, targetState));
             } else {
@@ -157,7 +158,7 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
         }
 
         public int clampViewPositionVertical(@NonNull View child, int top, int dy) {
-            return MathUtils.clamp(top, DrawerSheetBehavior.this.getExpandedOffset(), DrawerSheetBehavior.this.hideable ? DrawerSheetBehavior.this.parentHeight : DrawerSheetBehavior.this.collapsedOffset);
+            return MathUtils.clamp(top, DrawerSheetBehavior.this.getExpandedOffset(), DrawerSheetBehavior.this.hideable ? DrawerSheetBehavior.this.parentWidth : DrawerSheetBehavior.this.collapsedOffset);
         }
 
         public int clampViewPositionHorizontal(@NonNull View child, int left, int dx) {
@@ -165,7 +166,7 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
         }
 
         public int getViewVerticalDragRange(@NonNull View child) {
-            return DrawerSheetBehavior.this.hideable ? DrawerSheetBehavior.this.parentHeight : DrawerSheetBehavior.this.collapsedOffset;
+            return DrawerSheetBehavior.this.hideable ? DrawerSheetBehavior.this.parentWidth : DrawerSheetBehavior.this.collapsedOffset;
         }
     };
 
@@ -210,32 +211,32 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
             child.setFitsSystemWindows(true);
         }
 
-        int savedTop = child.getTop();
+        int savedLeft = child.getLeft();
         parent.onLayoutChild(child, layoutDirection);
-        this.parentHeight = parent.getHeight();
+        this.parentWidth = parent.getWidth();
         if (this.peekHeightAuto) {
             if (this.peekHeightMin == 0) {
                 this.peekHeightMin = parent.getResources().getDimensionPixelSize(android.support.design.R.dimen.design_bottom_sheet_peek_height_min);
             }
 
-            this.lastPeekHeight = Math.max(this.peekHeightMin, this.parentHeight - parent.getWidth() * 9 / 16);
+            this.lastPeekHeight = Math.max(this.peekHeightMin, this.parentWidth - parent.getWidth() * 9 / 16/*todo*/);
         } else {
             this.lastPeekHeight = this.peekHeight;
         }
 
-        this.fitToContentsOffset = Math.max(0, this.parentHeight - child.getHeight());
-        this.halfExpandedOffset = this.parentHeight / 2;
+        this.fitToContentsOffset = Math.max(0, this.parentWidth - child.getWidth());
+        this.halfExpandedOffset = this.parentWidth / 2;
         this.calculateCollapsedOffset();
         if (this.state == 3) {
-            ViewCompat.offsetTopAndBottom(child, this.getExpandedOffset());
+            ViewCompat.offsetLeftAndRight(child, this.getExpandedOffset());
         } else if (this.state == 6) {
-            ViewCompat.offsetTopAndBottom(child, this.halfExpandedOffset);
+            ViewCompat.offsetLeftAndRight(child, this.halfExpandedOffset);
         } else if (this.hideable && this.state == 5) {
-            ViewCompat.offsetTopAndBottom(child, this.parentHeight);
+            ViewCompat.offsetLeftAndRight(child, this.parentWidth);
         } else if (this.state == 4) {
-            ViewCompat.offsetTopAndBottom(child, this.collapsedOffset);
+            ViewCompat.offsetLeftAndRight(child, this.collapsedOffset);
         } else if (this.state == 1 || this.state == 2) {
-            ViewCompat.offsetTopAndBottom(child, savedTop - child.getTop());
+            ViewCompat.offsetLeftAndRight(child, savedLeft - child.getLeft());
         }
 
         if (this.viewDragHelper == null) {
@@ -263,33 +264,37 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
 
             this.velocityTracker.addMovement(event);
             switch (action) {
-                case 0:
-                    int initialX = (int) event.getX();
-                    this.initialY = (int) event.getY();
+                case MotionEvent.ACTION_DOWN:
+                    this.initialX = (int) event.getX();
+                    int initialY = (int) event.getY();
                     View scroll = this.nestedScrollingChildRef != null ? (View) this.nestedScrollingChildRef.get() : null;
-                    if (scroll != null && parent.isPointInChildBounds(scroll, initialX, this.initialY)) {
+                    if (scroll != null && parent.isPointInChildBounds(scroll, this.initialX, initialY)) {
                         this.activePointerId = event.getPointerId(event.getActionIndex());
                         this.touchingScrollingChild = true;
                     }
 
-                    this.ignoreEvents = this.activePointerId == -1 && !parent.isPointInChildBounds(child, initialX, this.initialY);
+                    this.ignoreEvents = this.activePointerId == -1 && !parent.isPointInChildBounds(child, this.initialX, initialY);
                     break;
-                case 1:
-                case 3:
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
                     this.touchingScrollingChild = false;
                     this.activePointerId = -1;
                     if (this.ignoreEvents) {
                         this.ignoreEvents = false;
                         return false;
                     }
-                case 2:
+                case MotionEvent.ACTION_MOVE:
             }
 
             if (!this.ignoreEvents && this.viewDragHelper != null && this.viewDragHelper.shouldInterceptTouchEvent(event)) {
                 return true;
             } else {
                 View scroll = this.nestedScrollingChildRef != null ? (View) this.nestedScrollingChildRef.get() : null;
-                return action == 2 && scroll != null && !this.ignoreEvents && this.state != 1 && !parent.isPointInChildBounds(scroll, (int) event.getX(), (int) event.getY()) && this.viewDragHelper != null && Math.abs((float) this.initialY - event.getY()) > (float) this.viewDragHelper.getTouchSlop();
+                return action == MotionEvent.ACTION_MOVE &&
+                        scroll != null && !this.ignoreEvents && this.state != STATE_DRAGGING/*1*/ &&
+                        !parent.isPointInChildBounds(scroll, (int) event.getX(), (int) event.getY()) &&
+                        this.viewDragHelper != null &&
+                        Math.abs((float) this.initialX - event.getX()) > (float) this.viewDragHelper.getTouchSlop();
             }
         }
     }
@@ -299,7 +304,7 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
             return false;
         } else {
             int action = event.getActionMasked();
-            if (this.state == 1 && action == 0) {
+            if (this.state == STATE_DRAGGING/*1*/ && action == MotionEvent.ACTION_DOWN) {
                 return true;
             } else {
                 if (this.viewDragHelper != null) {
@@ -315,7 +320,9 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
                 }
 
                 this.velocityTracker.addMovement(event);
-                if (action == 2 && !this.ignoreEvents && Math.abs((float) this.initialY - event.getY()) > (float) this.viewDragHelper.getTouchSlop()) {
+                if (action == MotionEvent.ACTION_MOVE &&
+                        !this.ignoreEvents &&
+                        Math.abs((float) this.initialX - event.getX()) > (float) this.viewDragHelper.getTouchSlop()) {
                     this.viewDragHelper.captureChildView(child, event.getPointerId(event.getActionIndex()));
                 }
 
@@ -375,7 +382,7 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
                 top = this.getExpandedOffset();
                 targetState = 3;
             } else if (this.hideable && this.shouldHide(child, this.getYVelocity())) {
-                top = this.parentHeight;
+                top = this.parentWidth;
                 targetState = 5;
             } else if (this.lastNestedScrollDy == 0) {
                 int currentTop = child.getTop();
@@ -447,7 +454,7 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
         } else if (this.peekHeightAuto || this.peekHeight != peekHeight) {
             this.peekHeightAuto = false;
             this.peekHeight = Math.max(0, peekHeight);
-            this.collapsedOffset = this.parentHeight - peekHeight;
+            this.collapsedOffset = this.parentWidth - peekHeight;
             layout = true;
         }
 
@@ -535,9 +542,9 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
 
     private void calculateCollapsedOffset() {
         if (this.fitToContents) {
-            this.collapsedOffset = Math.max(this.parentHeight - this.lastPeekHeight, this.fitToContentsOffset);
+            this.collapsedOffset = Math.max(this.parentWidth - this.lastPeekHeight, this.fitToContentsOffset);
         } else {
-            this.collapsedOffset = this.parentHeight - this.lastPeekHeight;
+            this.collapsedOffset = this.parentWidth - this.lastPeekHeight;
         }
 
     }
@@ -613,7 +620,7 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
                 throw new IllegalArgumentException("Illegal state argument: " + state);
             }
 
-            top = this.parentHeight;
+            top = this.parentWidth;
         }
 
         if (this.viewDragHelper.smoothSlideViewTo(child, child.getLeft(), top)) {
@@ -629,7 +636,7 @@ public class DrawerSheetBehavior<V extends View> extends CoordinatorLayout.Behav
         View bottomSheet = (View) this.viewRef.get();
         if (bottomSheet != null && this.callback != null) {
             if (top > this.collapsedOffset) {
-                this.callback.onSlide(bottomSheet, (float) (this.collapsedOffset - top) / (float) (this.parentHeight - this.collapsedOffset));
+                this.callback.onSlide(bottomSheet, (float) (this.collapsedOffset - top) / (float) (this.parentWidth - this.collapsedOffset));
             } else {
                 this.callback.onSlide(bottomSheet, (float) (this.collapsedOffset - top) / (float) (this.collapsedOffset - this.getExpandedOffset()));
             }

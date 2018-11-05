@@ -8,16 +8,16 @@
 
 
     <!--<TextView-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="500dp"-->
-        <!--android:background="#ff6"-->
-        <!--android:text="@string/app_name"-->
-        <!--app:behavior_peekHeight="50dp"-->
-        <!--app:layout_behavior="com.loosu.behaviordemo.behavior.BottomSheetBehavior" />-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="500dp"-->
+    <!--android:background="#ff6"-->
+    <!--android:text="@string/app_name"-->
+    <!--app:behavior_peekHeight="50dp"-->
+    <!--app:layout_behavior="com.loosu.behaviordemo.behavior.BottomSheetBehavior" />-->
 
     <TextView
-        android:layout_width="match_parent"
-        android:layout_height="500dp"
+        android:layout_width="500dp"
+        android:layout_height="match_parent"
         android:background="#ff6"
         android:text="@string/app_name"
         app:behavior_peekHeight="50dp"
